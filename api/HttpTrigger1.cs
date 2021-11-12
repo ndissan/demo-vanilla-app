@@ -1,35 +1,25 @@
-using System;
-using System.IO;
-using System.Threading.Tasks;
-using Microsoft.AspNetCore.Mvc;
-using Microsoft.Azure.WebJobs;
-using Microsoft.Azure.WebJobs.Extensions.Http;
-using Microsoft.AspNetCore.Http;
-using Microsoft.Extensions.Logging;
-using Newtonsoft.Json;
-
-namespace Company.Function
+using static System.Environment;
+using System.Net.Http;
+using System.Net.Http.Headers;
+using System.Net;
+ 
+public static async Task<HttpResponseMessage> Run(HttpRequestMessage req, TraceWriter log)
 {
-    public static class HttpTrigger1
+    string OriginUrl = req.Headers.GetValues("DISGUISED-HOST").FirstOrDefault(); 
+    log.Info("RequestURI org: " + OriginUrl);
+   
+    //create response
+    var response = req.CreateResponse(HttpStatusCode.MovedPermanently);
+ 
+    if((OriginUrl.Contains("happy-meadow")) || 
+       (OriginUrl.Contains("happy-meadow-04eb2030f.azurestaticapps.net"))) 
+    { 
+           response.Headers.Location = new Uri("https://www.gs1au.org/nlr");
+    } 
+    else
     {
-        [FunctionName("HttpTrigger1")]
-        public static async Task<IActionResult> Run(
-            [HttpTrigger(AuthorizationLevel.Anonymous, "get", "post", Route = null)] HttpRequest req,
-            ILogger log)
-        {
-            log.LogInformation("C# HTTP trigger function processed a request.");
-
-            string name = req.Query["name"];
-
-            string requestBody = await new StreamReader(req.Body).ReadToEndAsync();
-            dynamic data = JsonConvert.DeserializeObject(requestBody);
-            name = name ?? data?.name;
-
-            string responseMessage = string.IsNullOrEmpty(name)
-                ? "This HTTP triggered function executed successfully. Pass a name in the query string or in the request body for a personalized response."
-                : $"Hello, {name}. This HTTP triggered function executed successfully.";
-
-            return new OkObjectResult(responseMessage);
-        }
+       return req.CreateResponse(HttpStatusCode.InternalServerError);
     }
+ 
+    return response;
 }
